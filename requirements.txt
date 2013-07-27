@@ -1,0 +1,5 @@
+argparse==1.2.1
+clint==0.3.1
+numpy==1.7.1
+pymc==2.2
+wsgiref==0.1.2
