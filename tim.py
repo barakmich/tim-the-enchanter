@@ -23,31 +23,23 @@ class DeceptionGame(object):
     self.player_alliance_vars = []
     self.player_role_vars = []
     self.role_ids =  {}
+    self.role_alliance = {}
     i = 0
 
     for card in player_array:
       role, good = card
       self.role_ids[role] = i
+      self.role_alliance[i] = good
       i += 1
 
-    def player_alliance(x, deck_var = self.deck_var):
-      return self.all_permutations[deck_var][x][1]
+    def player_alliance(x, role):
+      return self.role_alliance[role]
 
     def player_role(x, deck_var = self.deck_var):
       role_str = self.all_permutations[deck_var][x][0]
       return self.role_ids[role_str]
 
     for x in range(self.n_players):
-      alliance = mc.Deterministic(eval = functools.partial(player_alliance, x),
-                                  name = "player_alliance_%d" % x,
-                                  parents = { "deck_var" : self.deck_var },
-                                  doc = "Is player %d good?" % x,
-                                  dtype = bool,
-                                  trace = True,
-                                  plot = False)
-
-      self.player_alliance_vars.append(alliance)
-
       role = mc.Deterministic(eval = functools.partial(player_role, x),
                               name = "player_role_%d" % x,
                               parents = { "deck_var" : self.deck_var },
@@ -56,6 +48,17 @@ class DeceptionGame(object):
                               trace = True,
                               plot = False)
       self.player_role_vars.append(role)
+
+      alliance = mc.Deterministic(eval = functools.partial(player_alliance, x),
+                                  name = "player_alliance_%d" % x,
+                                  parents = { "role" : role},
+                                  doc = "Is player %d good?" % x,
+                                  dtype = bool,
+                                  trace = True,
+                                  plot = False)
+
+      self.player_alliance_vars.append(alliance)
+
     self.observations = []
     self.tid = 0
 
