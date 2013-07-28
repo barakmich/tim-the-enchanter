@@ -4,7 +4,6 @@ import itertools
 from collections import defaultdict as dd
 import pprint
 import numpy
-from numpy.random import random
 
 
 def ResistanceGame(n_players):
@@ -20,43 +19,40 @@ def BuildNbyNBeliefMatrix(id, n_players):
     for player_id in range(n_players):
         vec = mc.Uniform("%d_trust_%d" % (id, player_id),
                          0.0, 1.0,
-                         trace=False,
-                         size=n_players)
+                         trace=True,
+                         size=n_players,
+                         value=(numpy.ones(n_players) * (1.0 / n_players)))
         matrix.append(vec)
         all_vars.append(vec)
 
     # Enforce that there's only one role for each player.
     for i, player_vec in enumerate(matrix):
-        det_var = sum(vec)
-        all_vars.append(det_var)
-        obs = mc.Bernoulli(
-            "player_%d_one_role_constraint_%d" % (id, i),
-            det_var,
-            value=1.0,
-            trace=False,
-            observed=True)
-        all_vars.append(obs)
+        @mc.potential
+        def obs_one_role(player_vec=player_vec):
+            return mc.distributions.normal_like(
+                sum(player_vec),
+                1.0,
+                100)
+        all_vars.append(obs_one_role)
 
     # Enforce that there's only one player per role.
     for i in range(n_players):
-        det_var = sum([vec[i] for vec in matrix])
-        all_vars.append(det_var)
-        obs = mc.Bernoulli(
-            "player_%d_one_player_constraint_%d" % (id, i),
-            det_var,
-            value=1.0,
-            trace=False,
-            observed=True)
-        all_vars.append(obs)
+        @mc.potential
+        def obs_one_per_role(matrix=matrix):
+            return mc.distributions.normal_like(
+                sum([vec[i] for vec in matrix]),
+                1.0,
+                100)
+        all_vars.append(obs_one_per_role)
+
     return matrix, all_vars
+
 
 class Player(object):
     ''' Representing all that the player is and knows '''
-    def __init__(self, id, game, side_var, role_var):
+    def __init__(self, id, game):
         self.id = id
         self.game = game
-        self.side_var = side_var
-        self.role_var = role_var
         self.all_vars = []
         self.build_belief_matrix()
 
@@ -67,53 +63,18 @@ class Player(object):
         return self.role_var
 
     def build_belief_matrix(self):
-        self.matrix = []
         self.matrix, self.all_vars = \
             BuildNbyNBeliefMatrix(self.id, self.game.n_players)
 
         # Enforce that the player completely knows her own role.
-        def player_knows_self(self_role=self.role_var):
-            return self.matrix[self.id][self_role]
-
-        knows = mc.Deterministic(eval=player_knows_self,
-                                 name="player_knows_self_%d" % self.id,
-                                 parents={"self_role": self.role_var},
-                                 doc="Player knows self %d" % self.id,
-                                 dtype=float,
-                                 trace=True,
-                                 plot=False)
+        @mc.potential
+        def knows(deck_var=self.game.deck_var, matrix=self.matrix):
+            role_id = self.game.player_role_for_deck_var(deck_var, self.id)
+            return mc.distributions.normal_like(
+                matrix[self.id][role_id],
+                1.0,
+                100)
         self.all_vars.append(knows)
-        obs = mc.Bernoulli(
-            "player_knows_self_constraint_%d" % self.id,
-            knows,
-            value=1.0,
-            observed=True)
-        self.all_vars.append(obs)
-
-        # Convenience vars for trust
-        self.side_belief = []
-
-        def side_belief(player_id, role_vec):
-            out = 0.0
-            for i, role in enumerate(role_vec):
-                if self.game.role_id_is_good(i):
-                    out += role
-            out = out / len(role_vec)
-            return out
-
-        for i in range(self.game.n_players):
-            is_good = mc.Deterministic(eval=functools.partial(side_belief, i),
-                                       name="player%d_trust_%d" % (self.id, i),
-                                       parents={"role_vec": self.matrix[i]},
-                                       doc="Does player trust %d?" % i,
-                                       dtype=float,
-                                       trace=True,
-                                       plot=False)
-            self.side_belief.append(is_good)
-            self.all_vars.append(is_good)
-
-    def get_good_belief_for(self, player_id):
-        return self.side_belief[player_id]
 
     def get_role_belief_for(self, player_id, role_id):
         return self.matrix[player_id][role_id]
@@ -172,10 +133,15 @@ class DeceptionGame(object):
                                     plot=False)
 
             self.player_side_vars.append(side)
-            self.players.append(Player(x, self, side, role))
+            #self.players.append(Player(x, self))
 
-        for x in range(50000):
-            self.deck_var.random()
+        self.lady_will_duck = mc.Bernoulli("lady_will_duck", 0.5)
+        self.team_duck = [None] * 5
+        self.team_duck[0] = mc.Bernoulli("team_duck_1", 0.8)
+        self.team_duck[1] = mc.Bernoulli("team_duck_2", 0.6)
+        self.team_duck[2] = mc.Bernoulli("team_duck_3", 0.4)
+        self.team_duck[3] = mc.Bernoulli("team_duck_4", 0.2)
+        self.team_duck[4] = mc.Bernoulli("team_duck_5", 0.0)
 
         self.observations = []
         self.tid = 0
@@ -186,29 +152,54 @@ class DeceptionGame(object):
     def role_id_is_good(self, role_id):
         return self.role_side[role_id]
 
+    def player_good_for_deck_var(self, index, player):
+        return self.all_permutations[index][player][1]
+
+    def player_role_for_deck_var(self, index, player):
+        return self.get_role_id_for(self.all_permutations[index][player][0])
+
+    def player_sees_player_and_claims(self, player_view, player_give, claim):
+        transaction = []
+        total_len = len(self.all_permutations)
+        for i in range(len(self.all_permutations)):
+            self.deck_var.value = (5119 * i) % total_len
+            try:
+                @mc.potential
+                def claims(deck_var=self.deck_var, will_duck=self.lady_will_duck):
+                    if self.player_good_for_deck_var(deck_var, player_view) or will_duck:
+                        if self.player_good_for_deck_var(deck_var, player_give) == claim:
+                            return 0.0
+                        else:
+                            return -numpy.inf
+                    else:
+                        if self.player_good_for_deck_var(deck_var, player_give) == claim:
+                            return -numpy.inf
+                        else:
+                            return 0.0
+
+                        return -numpy.inf
+            except mc.ZeroProbability:
+                continue
+
+        transaction.append(claims)
+        self.observations.append(transaction)
+        self.tid += 1
+
     def add_known_side(self, player_id, is_good):
         transaction = []
+        total_len = len(self.all_permutations)
+        for i in range(len(self.all_permutations)):
+            self.deck_var.value = (5119 * i) % total_len
+            try:
+                @mc.potential
+                def obs(deck_var=self.deck_var):
+                    x = float(self.player_good_for_deck_var(deck_var, player_id)) - \
+                            float(is_good)
+                    return mc.distributions.normal_like(x, 0.0, 10000)
+            except mc.ZeroProbability:
+                continue
+            break
 
-        def player_is_good(side_var):
-            if side_var == is_good:
-                return 1.0
-            return 0.0
-
-        det = mc.Deterministic(
-            eval=player_is_good,
-            name="player_seen_det_tid%d" % self.tid,
-            parents={"side_var": self.player_side_vars[player_id]},
-            doc="Det TID%d" % self.tid,
-            dtype=float,
-            trace=False,
-            plot=False)
-
-        transaction.append(det)
-
-        obs = mc.Degenerate("player_seen_tid%d" % self.tid,
-                            det,
-                            value=1.0,
-                            observed=True)
         transaction.append(obs)
         self.observations.append(transaction)
         self.tid += 1
@@ -216,62 +207,88 @@ class DeceptionGame(object):
     def add_known_role(self, player_id, role_str):
         transaction = []
         known_role_id = self.get_role_id_for(role_str)
+        total_len = len(self.all_permutations)
+        for i in range(len(self.all_permutations)):
+            self.deck_var.value = (5119 * i) % total_len
+            try:
+                @mc.potential
+                def role(deck_var=self.deck_var):
+                    x = self.player_role_for_deck_var(deck_var, player_id) \
+                            - known_role_id
+                    return mc.distributions.normal_like(x, 0.0, 10000)
 
-        def bool_stoch_logp(value, in_val):
-            if value == in_val:
-                return -numpy.log(1)
-            else:
-                return -numpy.inf
+            except mc.ZeroProbability:
+                continue
+            break
 
-        def bool_stoch_rand(in_val):
-            return bool(numpy.round(random()))
-
-        def is_known_role(role_id):
-            if role_id == known_role_id:
-                return True
-            return False
-
-        det = mc.Deterministic(
-            eval=is_known_role,
-            name="player_seen_role_det_tid%d" % self.tid,
-            parents={"role_id": self.player_role_vars[player_id]},
-            doc="Det TID%d" % self.tid,
-            dtype=bool,
-            trace=True,
-            plot=False)
-
-        transaction.append(det)
-
-        obs = mc.Stochastic(
-            logp=bool_stoch_logp,
-            doc="Boolean stochastic observation",
-            name="player_seen_role_tid%d" % self.tid,
-            parents={"in_val": det},
-            random=bool_stoch_rand,
-            trace=True,
-            value=True,
-            dtype=bool,
-            observed=True,
-            cache_depth=2,
-            plot=False,
-            verbose=0)
-
-        #obs = mc.Uniform("player_seen_role_tid%d" % self.tid,
-                                 #0, det,
-                                 #value=1,
-                                 #observed=True)
-        transaction.append(obs)
+        transaction.append(role)
         self.observations.append(transaction)
         self.tid += 1
 
-    def eval(self, length=40000, burn=10000):
+    def build_team(self, team, votes, required_success):
+        transaction = []
+
+        for voter in range(self.n_players):
+            total_len = len(self.all_permutations)
+            for i in range(len(self.all_permutations)):
+                self.deck_var.value = (5119 * i) % total_len
+                try:
+                    @mc.potential
+                    def build_team(deck_var=self.deck_var):
+                        voter_is_good = self.player_good_for_deck_var(deck_var, voter)
+                        if voter_is_good:
+                            return mc.distributions.normal_like(x - n_successes, 0.0, 1000)
+                        else:
+                            return mc.distributions.normal_like(x - required_success, len(team) -
+                    team_votes.name = "voter_%d_tid%d" % (voter, self.tid)
+
+                except mc.ZeroProbability:
+                    continue
+                break
+
+            transaction.append(team_votes)
+        self.observations.append(transaction)
+        self.tid += 1
+    def team_and_successes(self, team, n_successes, mandatory, r):
+        transaction = []
+
+        total_len = len(self.all_permutations)
+        for i in range(len(self.all_permutations)):
+            self.deck_var.value = (5119 * i) % total_len
+            try:
+                @mc.potential
+                def team_votes(deck_var=self.deck_var, team_duck=self.team_duck[r - 1]):
+                    team_allegience = [self.player_good_for_deck_var(deck_var, x)
+                                             for x in team]
+                    for i, al in enumerate(team_allegience):
+                        if al is True:
+                            continue
+                        else:
+                            if not mandatory and team_duck:
+                                print "Ducking"
+                                team_allegience[i] = True
+
+                    x = sum([float(x) for x in team_allegience])
+                    return mc.distributions.normal_like(x - n_successes, 0.0, 1000)
+                team_votes.name = "team_votes_tid%d" % self.tid
+
+            except mc.ZeroProbability:
+                continue
+            break
+
+        transaction.append(team_votes)
+        self.observations.append(transaction)
+        self.tid += 1
+
+    def eval(self, length=60000, burn=30):
         mcmc = mc.MCMC(self._build_model_list())
         mcmc.sample(length, burn)
         self.model = mcmc
 
-    def eval_model_sans_players(self, length=40000, burn=500):
+    def eval_model_sans_players(self, length=40000, burn=0):
         mcmc = mc.MCMC(self._build_restricted_model_list())
-        mcmc.sample(length, burn)
+        #mcmc.use_step_method(mc.DiscreteMetropolis, self.deck_var, proposal_distribution='Prior')
+        mcmc.sample(length, burn, tune_throughout=False)
 
     def report(self):
         if self.model is None:
@@ -314,8 +331,11 @@ class DeceptionGame(object):
     def _build_model_list(self):
         out = []
         out.append(self.deck_var)
+        out.append(self.lady_will_duck)
         out.extend(self.player_side_vars[:])
         out.extend(self.player_role_vars[:])
+        for duck in self.team_duck:
+            out.append(duck)
         for player in self.players:
             out.extend(player.all_vars[:])
         flattened = [item for transaction in self.observations
@@ -324,10 +344,13 @@ class DeceptionGame(object):
         return list(set(out))
 
 
-base_game = DeceptionGame(ResistanceGame(10))
-base_game.eval_model_sans_players()
-base_game.add_known_role(0, "G1")
-base_game.add_known_side(1, False)
+base_game = DeceptionGame(ResistanceGame(5))
+#base_game.add_known_role(0, "G1")
+base_game.build_team([0, 1, 2], [1, 0, 1, 1, 0], 1)
+base_game.team_and_successes([0, 1, 2], 2, 1, False)
+#base_game.team_and_successes([0, 1, 2], 2, 2, False)
+#base_game.player_sees_player_and_claims(0, 1, False)
+#base_game.add_known_side(1, False)
 base_game.eval()
 
 base_game.print_report()
