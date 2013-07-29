@@ -265,87 +265,92 @@ def main():
   namemap = {}
 
   while True:
-    command_str = raw_input("%s> " % game)
-    command_list = command_str.strip().split(" ")
-    command = command_list[0]
-    if command == "quit" or command == "q" or command == "exit":
-      sys.exit(0)
-    if (command != "newgame" and command != "testgame") and game is None:
-      puts(colored.red("Need to create a game"))
-      continue
-    elif command == "newgame":
-      nplayers = raw_input("How many players? ")
-      game = DeceptionGame(ResistanceGame(int(nplayers)))
-      namemap = {}
-      continue
-    elif command == "testgame":
-      game = DeceptionGame(ResistanceGame(5))
-      game.do_vote([1,2], [0,1,1,0,1], 1)
-      game.do_mission([1,2], 0, False, 1)
-      game.do_vote([0, 1, 2], [1,1,1,0,1], 2)
-      game.do_mission([0, 1, 2], 1, False, 2)
-      game.do_vote([3, 4], [0,0,1,1,1], 3)
-      game.do_mission([3, 4], 0, False, 3)
-      game.do_vote([3, 4], [0,0,1,1,1], 4)
-      game.do_mission([0, 3, 4], 1, False, 4)
-      namemap = {}
-      continue
-    elif command == "ls":
-      for i, statement in enumerate(game.seen):
-        name = " ".join([namemap.get(x, str(x)) for x in statement])
-        print "%d: %s" % (i, name)
-      continue
-    elif command == "vote":
-      team = [int(x) for x in raw_input("Team? ").strip().split(" ")]
-      votes = [int(x) for x in raw_input("Votes? ").strip().split(" ")]
-      round = int(raw_input("Round? ").strip())
-      game.do_vote(team, votes, round)
-      game.trace = []
-      continue
-
-    elif command == "mission":
-      team = [int(x) for x in raw_input("Team? ").strip().split(" ")]
-      fails = int(raw_input("# of Fails? ").strip())
-      must = int(raw_input("Spys must fail? ").strip()) == 1
-      round = int(raw_input("Round? ").strip())
-      game.do_mission(team, fails, must, round)
-      game.trace = []
-      continue
-
-    elif command == "lady" or command == "lol":
-      p1 = int(raw_input("ID For Lady? ").strip())
-      p2 = int(raw_input("ID For Target? ").strip())
-      claim = int(raw_input("Claim? ").strip()) == 1
-      game.player_sees_player_and_claims(p1, p2, claim)
-      game.trace = []
-      continue
-
-    elif command == "side":
-      p1 = int(raw_input("ID For Assertion? ").strip())
-      claim = int(raw_input("Good? ").strip()) == 1
-      game.add_known_alliance(p1, claim)
-      game.trace = []
-      continue
-
-    elif command == "eval":
-      times = 200 / (game.n_players - 4) * 2
-      if len(command_list) > 1:
-        times = int(command_list[1])
-      game.eval(times)
-    elif command == "report":
-      repl_report(game.report(), namemap, game.n_good)
-    elif command == "name":
-      if len(command_list) < 3:
-        puts(colored.red("No args?"))
+    try:
+      command_str = raw_input("%s> " % game)
+      command_list = command_str.strip().split(" ")
+      command = command_list[0]
+      if command == "quit" or command == "q" or command == "exit":
+        sys.exit(0)
+      if (command != "newgame" and command != "testgame") and game is None:
+        puts(colored.red("Need to create a game"))
         continue
-      namemap[int(command_list[1])] = command_list[2]
-    elif command == "disb" or command == "disbelieve":
-      if len(command_list) < 2:
-        puts(colored.red("No args?"))
+      elif command == "newgame":
+        nplayers = raw_input("How many players? ")
+        game = DeceptionGame(ResistanceGame(int(nplayers)))
+        namemap = {}
         continue
-      game.disbelieve(int(command_list[1]))
-    else:
-      puts(colored.red("Unknown command: %s" % command))
+      elif command == "testgame":
+        game = DeceptionGame(ResistanceGame(5))
+        game.do_vote([1,2], [0,1,1,0,1], 1)
+        game.do_mission([1,2], 0, False, 1)
+        game.do_vote([0, 1, 2], [1,1,1,0,1], 2)
+        game.do_mission([0, 1, 2], 1, False, 2)
+        game.do_vote([3, 4], [0,0,1,1,1], 3)
+        game.do_mission([3, 4], 0, False, 3)
+        game.do_vote([3, 4], [0,0,1,1,1], 4)
+        game.do_mission([0, 3, 4], 1, False, 4)
+        namemap = {}
+        continue
+      elif command == "ls":
+        for i, statement in enumerate(game.seen):
+          name = " ".join([namemap.get(x, str(x)) for x in statement])
+          print "%d: %s" % (i, name)
+        continue
+      elif command == "vote":
+        input = raw_input("Team? ").strip()
+        team = [int(x) for x in input]
+        votes = [int(x) for x in raw_input("Votes? ").strip()]
+        round = int(raw_input("Round? ").strip())
+        game.do_vote(team, votes, round)
+        game.trace = []
+        continue
+
+      elif command == "mission":
+        team = [int(x) for x in raw_input("Team? ").strip()]
+        fails = int(raw_input("# of Fails? ").strip())
+        must = int(raw_input("Spys must fail? ").strip()) == 1
+        round = int(raw_input("Round? ").strip())
+        game.do_mission(team, fails, must, round)
+        game.trace = []
+        continue
+
+      elif command == "lady" or command == "lol":
+        p1 = int(raw_input("ID For Lady? ").strip())
+        p2 = int(raw_input("ID For Target? ").strip())
+        claim = int(raw_input("Claim? ").strip()) == 1
+        game.player_sees_player_and_claims(p1, p2, claim)
+        game.trace = []
+        continue
+
+      elif command == "side":
+        p1 = int(raw_input("ID For Assertion? ").strip())
+        claim = int(raw_input("Good? ").strip()) == 1
+        game.add_known_alliance(p1, claim)
+        game.trace = []
+        continue
+
+      elif command == "eval":
+        times = 200 / (game.n_players - 4) * 2
+        if len(command_list) > 1:
+          times = int(command_list[1])
+        game.eval(times)
+      elif command == "report":
+        repl_report(game.report(), namemap, game.n_good)
+      elif command == "name":
+        if len(command_list) < 3:
+          puts(colored.red("No args?"))
+          continue
+        namemap[int(command_list[1])] = command_list[2]
+      elif command == "disb" or command == "disbelieve":
+        if len(command_list) < 2:
+          puts(colored.red("No args?"))
+          continue
+        game.disbelieve(int(command_list[1]))
+      else:
+        puts(colored.red("Unknown command: %s" % command))
+        continue
+    except Exception:
+      print "\n"
       continue
 
 
