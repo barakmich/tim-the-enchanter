@@ -162,7 +162,7 @@ class DeceptionGame(object):
     deck = self.all_permutations[:]
     new_deck = []
     trace = []
-    progress = progressbar.ProgressBar()
+    progress = progressbar.ProgressBar(widgets=[": ", progressbar.Bar(marker=progressbar.RotatingMarker()), " ", progressbar.ETA()])
     for i in progress(range(length)):
       for deal in deck:
         f_list = []
@@ -227,16 +227,16 @@ class DeceptionGame(object):
     pp.pprint(self.report())
 
 
-base_game = DeceptionGame(ResistanceGame(5))
+base_game = DeceptionGame(ResistanceGame(10))
 #base_game.add_known_role(0, "G1")
 #base_game.add_known_alliance(1, False)
-#base_game.player_sees_player_and_claims(0, 1, False)
-base_game.do_vote([1,2], [0,1,1,0,1], 1)
-base_game.do_mission([1,2], 0, False, 1)
-base_game.do_vote([0, 1, 2], [1,1,1,0,1], 2)
-base_game.do_mission([0, 1, 2], 1, False, 2)
-base_game.do_vote([3, 4], [0,0,1,1,1], 3)
-base_game.do_mission([3, 4], 0, False, 3)
+base_game.player_sees_player_and_claims(0, 1, False)
+#base_game.do_vote([1,2], [0,1,1,0,1], 1)
+#base_game.do_mission([1,2], 0, False, 1)
+#base_game.do_vote([0, 1, 2], [1,1,1,0,1], 2)
+#base_game.do_mission([0, 1, 2], 1, False, 2)
+#base_game.do_vote([3, 4], [0,0,1,1,1], 3)
+#base_game.do_mission([3, 4], 0, False, 3)
 #base_game.do_vote([3, 4], [0,0,1,1,1], 4)
 #base_game.do_mission([0, 3, 4], 1, False, 4)
 #base_game.do_vote([1, 3, 4], [0,1,1,0,1], 5)
