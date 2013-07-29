@@ -158,11 +158,11 @@ class DeceptionGame(object):
     self.tid += 1
 
 
-  def eval(self, length=100):
+  def eval(self, length=10):
     deck = self.all_permutations[:]
     new_deck = []
     trace = []
-    progress = progressbar.ProgressBar(widgets=[": ", progressbar.Bar(marker=progressbar.RotatingMarker()), " ", progressbar.ETA()])
+    progress = progressbar.ProgressBar(widgets=["Simulating games: ", progressbar.Bar(marker="*"), " ", progressbar.ETA()])
     for i in progress(range(length)):
       for deal in deck:
         f_list = []
@@ -195,23 +195,25 @@ class DeceptionGame(object):
   def report(self):
     if self.trace is None:
       self.eval()
+    return self.get_player_data()
+
+  def get_player_data(self):
     out = []
     for i in range(self.n_players):
-      out.append(self.get_player_data(i))
-    return out
+      out.append({})
+      out[i]["role"] = dd(float)
+      out[i]["side"] = dd(float)
 
-  def get_player_data(self, i):
-    out = {}
-    out["role"] = dd(float)
-    out["side"] = dd(float)
-
-    cards = self._aggregate(self.trace, i)
-    for k, v in cards.iteritems():
-      role, side = k
-      out["role"][role] += v
-      out["side"][side] += v
-    out["role"] = dict(out["role"])
-    out["side"] = dict(out["side"])
+    progress = progressbar.ProgressBar(widgets=["Reticulating splines: ", progressbar.Bar(marker="*"), " ", progressbar.ETA()])
+    size = len(self.trace) * 1.0
+    for deal in progress(self.trace):
+      for i, card in enumerate(deal):
+        role, side = card
+        out[i]["role"][role] += 1.0 / size
+        out[i]["side"][side] += 1.0 / size
+    for i in range(self.n_players):
+      out[i]["role"] = dict(out[i]["role"])
+      out[i]["side"] = dict(out[i]["side"])
     return out
 
   def _aggregate(self, l, i):
@@ -227,21 +229,23 @@ class DeceptionGame(object):
     pp.pprint(self.report())
 
 
-base_game = DeceptionGame(ResistanceGame(10))
+base_game = DeceptionGame(ResistanceGame(5))
 #base_game.add_known_role(0, "G1")
 #base_game.add_known_alliance(1, False)
-base_game.player_sees_player_and_claims(0, 1, False)
-#base_game.do_vote([1,2], [0,1,1,0,1], 1)
-#base_game.do_mission([1,2], 0, False, 1)
-#base_game.do_vote([0, 1, 2], [1,1,1,0,1], 2)
-#base_game.do_mission([0, 1, 2], 1, False, 2)
-#base_game.do_vote([3, 4], [0,0,1,1,1], 3)
-#base_game.do_mission([3, 4], 0, False, 3)
-#base_game.do_vote([3, 4], [0,0,1,1,1], 4)
-#base_game.do_mission([0, 3, 4], 1, False, 4)
+#base_game.player_sees_player_and_claims(0, 1, True)
+#base_game.player_sees_player_and_claims(1, 2, False)
+#base_game.player_sees_player_and_claims(2, 3, False)
+base_game.do_vote([1,2], [0,1,1,0,1], 1)
+base_game.do_mission([1,2], 0, False, 1)
+base_game.do_vote([0, 1, 2], [1,1,1,0,1], 2)
+base_game.do_mission([0, 1, 2], 1, False, 2)
+base_game.do_vote([3, 4], [0,0,1,1,1], 3)
+base_game.do_mission([3, 4], 0, False, 3)
+base_game.do_vote([3, 4], [0,0,1,1,1], 4)
+base_game.do_mission([0, 3, 4], 1, False, 4)
 #base_game.do_vote([1, 3, 4], [0,1,1,0,1], 5)
 #base_game.do_mission([1, 3, 4], 1, True, 5)
-base_game.eval()
+base_game.eval(100)
 
 base_game.print_report()
 
