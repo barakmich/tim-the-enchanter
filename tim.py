@@ -5,11 +5,19 @@ import progressbar
 import readline
 import random
 import sys
-from clint.textui import colored, puts
+import colorama
+from colorama import Fore, Style
 
 
 def ResistanceGame(n_players):
     full_set = [("G1", True), ("G2", True), ("G3", True),
+                ("E1", False), ("E2", False), ("G4", True),
+                ("E3", False), ("G5", True), ("G6", True), ("E4", False)]
+    return full_set[:n_players]
+
+
+def AvalonGame(n_players):
+    full_set = [("Merlin", True), ("G2", True), ("G3", True),
                 ("E1", False), ("E2", False), ("G4", True),
                 ("E3", False), ("G5", True), ("G6", True), ("E4", False)]
     return full_set[:n_players]
@@ -66,8 +74,11 @@ class DeceptionGame(object):
                 return None
         transaction.append(obs)
         self.observations.append(transaction)
-        self.seen.append(
-            ["Known role ", player_id, "Good" if is_good else "Evil"])
+        self.seen.append({"type": "known_side",
+                          "player": player_id,
+                          "is good": is_good,
+                          "print_order": ["player",
+                                          "is good"]})
         self.tid += 1
 
     def add_known_role(self, player_id, role_str):
@@ -80,7 +91,11 @@ class DeceptionGame(object):
                 return None
         transaction.append(obs)
         self.observations.append(transaction)
-        self.seen.append(["Known role ", player_id, role_str])
+        self.seen.append({"type": "known_role",
+                          "player": player_id,
+                          "role": role_str,
+                          "print_order": ["player",
+                                          "role"]})
         self.tid += 1
 
     def player_sees_player_and_claims(self, p1, p2, claim):
@@ -107,6 +122,13 @@ class DeceptionGame(object):
         self.observations.append(transaction)
         self.seen.append(
             ["Lady:", p1, "says", p2, "is", "Good" if claim else "Evil"])
+        self.seen.append({"type": "lady",
+                          "p1": p1,
+                          "p2": p2,
+                          "is good": claim,
+                          "print_order": ["p1",
+                                          "p2",
+                                          "is good"]})
         self.tid += 1
 
     def do_mission(self, team, fails, must_fail, r):
@@ -137,8 +159,15 @@ class DeceptionGame(object):
 
         transaction.append(obs)
         self.observations.append(transaction)
-        self.seen.append(
-            ["Mission:"] + team + ["with %d fails on round %d" % (fails, r)])
+        self.seen.append({"type": "mission",
+                          "team": team,
+                          "fails": fails,
+                          "round": r,
+                          "must fail": must_fail,
+                          "print_order": ["team",
+                                          "fails",
+                                          "must fail",
+                                          "round"]})
         self.tid += 1
 
     def do_vote(self, team, votes, r):
@@ -151,10 +180,10 @@ class DeceptionGame(object):
             n_spies = len(team) - n_actually_good_people
             could_happen = True
             for player, vote in enumerate(votes):
-                if self.player_is_good(deal, player):
-                    if player in team:
-                        continue
-                    elif n_spies > 0:
+                if player in team:
+                    continue
+                elif self.player_is_good(deal, player):
+                    if n_spies > 0:
                         if vote == 1:
                             if self.ignorance_on_round[rnd].rand():
                                 continue
@@ -167,9 +196,7 @@ class DeceptionGame(object):
                             else:
                                 return False
                 else:
-                    if player in team:
-                        continue
-                    elif n_spies == 0:
+                    if n_spies == 0:
                         if vote == 1:
                             if self.ignorance_on_round[rnd].rand():
                                 continue
@@ -185,7 +212,11 @@ class DeceptionGame(object):
 
         transaction.append(obs)
         self.observations.append(transaction)
-        self.seen.append(["Vote:"] + team + ["voted %s round %d" % (votes, r)])
+        self.seen.append({"type": "vote",
+                          "team": team,
+                          "votes": votes,
+                          "round": r,
+                          "print_order": ["team", "votes", "round"]})
         self.tid += 1
 
     def eval(self, length=10):
@@ -287,14 +318,28 @@ def repl_report(report, namemap, ngood):
             goodness * 100,
             (1.0 - goodness) * 100)
         if still_good < ngood:
-            puts(colored.cyan(row))
+            print(Fore.CYAN + Style.BRIGHT + row)
         else:
-            puts(colored.red(row))
+            print(Fore.RED + Style.BRIGHT + row)
         still_good += 1
 
 
+def display_statement(statement, namemap):
+    out = ""
+    out += Fore.MAGENTA + Style.BRIGHT
+    out += statement["type"].title()
+    out += Style.RESET_ALL + " -- "
+    for key in statement["print_order"]:
+        out += Fore.YELLOW
+        out += key.title() + ": "
+        out += Style.RESET_ALL
+        out += str(statement[key]).title() + " "
+    return out
+
+
 def main():
-    puts(colored.green("Welcome to Tim the Enchanter v1.0"))
+    colorama.init(autoreset=True)
+    print(Fore.GREEN + Style.BRIGHT + "Welcome to Tim the Enchanter v1.0")
 
     game = None
     namemap = {}
@@ -308,7 +353,7 @@ def main():
                 sys.exit(0)
             if (command != "newgame" and command != "testgame") \
                and game is None:
-                puts(colored.red("Need to create a game"))
+                print(Fore.RED + "Need to create a game")
                 continue
             elif command == "newgame":
                 nplayers = raw_input("How many players? ")
@@ -329,9 +374,7 @@ def main():
                 continue
             elif command == "ls":
                 for i, statement in enumerate(game.seen):
-                    name = " ".join(
-                        [namemap.get(x, str(x)) for x in statement])
-                    print "%d: %s" % (i, name)
+                    print "%d: %s" % (i, display_statement(statement, namemap))
                 continue
             elif command == "vote":
                 input = raw_input("Team? ").strip()
@@ -375,16 +418,16 @@ def main():
                 repl_report(game.report(), namemap, game.n_good)
             elif command == "name":
                 if len(command_list) < 3:
-                    puts(colored.red("No args?"))
+                    print(Fore.RED + "No args?")
                     continue
                 namemap[int(command_list[1])] = command_list[2]
             elif command == "disb" or command == "disbelieve":
                 if len(command_list) < 2:
-                    puts(colored.red("No args?"))
+                    print(Fore.RED + "No args?")
                     continue
                 game.disbelieve(int(command_list[1]))
             else:
-                puts(colored.red("Unknown command: %s" % command))
+                print(Fore.RED + "Unknown command: %s" % command)
                 continue
         except Exception:
             print "\n"
