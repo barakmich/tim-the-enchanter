@@ -2,10 +2,12 @@ import itertools
 from collections import defaultdict as dd
 import pprint
 import progressbar
+import os
 import readline
 import random
 import sys
 import colorama
+import json
 from colorama import Fore, Style
 
 
@@ -61,7 +63,7 @@ class DeceptionGame(object):
     def player_is_good(self, deal, player):
         return deal[player][1]
 
-    def player_is_role(self, deal, player):
+    def player_role(self, deal, player):
         return deal[player][0]
 
     def add_known_alliance(self, player_id, is_good):
@@ -85,7 +87,7 @@ class DeceptionGame(object):
         transaction = []
 
         def obs(deal):
-            if self.player_is_role(deal, player_id) == role_str:
+            if self.player_role(deal, player_id) == role_str:
                 return True
             else:
                 return None
@@ -120,8 +122,6 @@ class DeceptionGame(object):
                         return True
         transaction.append(obs)
         self.observations.append(transaction)
-        self.seen.append(
-            ["Lady:", p1, "says", p2, "is", "Good" if claim else "Evil"])
         self.seen.append({"type": "lady",
                           "p1": p1,
                           "p2": p2,
@@ -170,7 +170,7 @@ class DeceptionGame(object):
                                           "round"]})
         self.tid += 1
 
-    def do_vote(self, team, votes, r):
+    def do_vote(self, team, votes, fail_req, r):
         transaction = []
         rnd = r - 1
 
@@ -183,7 +183,9 @@ class DeceptionGame(object):
                 if player in team:
                     continue
                 elif self.player_is_good(deal, player):
-                    if n_spies > 0:
+                    if n_spies > fail_req - 1:
+                        if self.player_role(deal, player) == "Merlin":
+                            continue
                         if vote == 1:
                             if self.ignorance_on_round[rnd].rand():
                                 continue
@@ -196,7 +198,7 @@ class DeceptionGame(object):
                             else:
                                 return False
                 else:
-                    if n_spies == 0:
+                    if n_spies < fail_req:
                         if vote == 1:
                             if self.ignorance_on_round[rnd].rand():
                                 continue
@@ -216,12 +218,40 @@ class DeceptionGame(object):
                           "team": team,
                           "votes": votes,
                           "round": r,
+                          "fails required": fail_req,
                           "print_order": ["team", "votes", "round"]})
         self.tid += 1
 
-    def eval(self, length=10):
+    def load_save(self, input_list):
+        for statement in input_list:
+            type = statement["type"]
+            if type == "vote":
+                self.do_vote(statement["team"],
+                             statement["votes"],
+                             statement["fails required"],
+                             statement["round"])
+            elif type == "mission":
+                self.do_mission(statement["team"],
+                                statement["fails"],
+                                statement["must fail"],
+                                statement["round"])
+            elif type == "lady":
+                self.player_sees_player_and_claims(statement["p1"],
+                                                   statement["p2"],
+                                                   statement["is good"])
+            elif type == "known_side":
+                self.add_known_alliance(statement["player"],
+                                        statement["is good"])
+            elif type == "known_role":
+                self.add_known_role(statement["player"],
+                                    statement["role"])
+
+    def eval(self, length=10, with_merlin=False):
         random.seed()
-        deck = self.all_permutations[:]
+        if not with_merlin:
+            deck = self.all_permutations[:]
+        else:
+            deck = list(itertools.permutations(AvalonGame(self.n_players)))
         new_deck = []
         trace = []
         progress = progressbar.ProgressBar(
@@ -321,6 +351,14 @@ def repl_report(report, namemap, ngood):
             print(Fore.CYAN + Style.BRIGHT + row)
         else:
             print(Fore.RED + Style.BRIGHT + row)
+        roles = sorted([(v, k) for k, v in report[i]["role"].iteritems()],
+                       reverse=True)
+        row = "    "
+        for score, role in roles:
+            row += "%2.1f%% %s " % (
+                score * 100, role)
+        print(row)
+
         still_good += 1
 
 
@@ -339,7 +377,7 @@ def display_statement(statement, namemap):
 
 def main():
     colorama.init(autoreset=True)
-    print(Fore.GREEN + Style.BRIGHT + "Welcome to Tim the Enchanter v1.0")
+    print(Fore.GREEN + Style.BRIGHT + "Tim the Enchanter v1.0")
 
     game = None
     namemap = {}
@@ -351,26 +389,27 @@ def main():
             command = command_list[0]
             if command == "quit" or command == "q" or command == "exit":
                 sys.exit(0)
-            if (command != "newgame" and command != "testgame") \
-               and game is None:
-                print(Fore.RED + "Need to create a game")
-                continue
-            elif command == "newgame":
-                nplayers = raw_input("How many players? ")
-                game = DeceptionGame(ResistanceGame(int(nplayers)))
-                namemap = {}
-                continue
-            elif command == "testgame":
-                game = DeceptionGame(ResistanceGame(5))
-                game.do_vote([1, 2], [0, 1, 1, 0, 1], 1)
-                game.do_mission([1, 2], 0, False, 1)
-                game.do_vote([0, 1, 2], [1, 1, 1, 0, 1], 2)
-                game.do_mission([0, 1, 2], 1, False, 2)
-                game.do_vote([3, 4], [0, 0, 1, 1, 1], 3)
-                game.do_mission([3, 4], 0, False, 3)
-                game.do_vote([3, 4], [0, 0, 1, 1, 1], 4)
-                game.do_mission([0, 3, 4], 1, False, 4)
-                namemap = {}
+            if game is None:
+                if command == "newgame":
+                    nplayers = raw_input("How many players? ")
+                    game = DeceptionGame(ResistanceGame(int(nplayers)))
+                    namemap = {}
+                elif command == "load":
+                    if len(command_list) < 2:
+                        print(Fore.RED + "Need an input file")
+                        continue
+                    inpath = os.path.expanduser(command_list[1])
+                    with open(inpath, "r") as savefile:
+                        observations = json.load(savefile)
+                        metadata = observations[0]
+                        data = observations[1:]
+
+                        game = DeceptionGame(
+                            ResistanceGame(int(metadata["game_size"])))
+                        namemap = metadata["player_names"]
+                        game.load_save(data)
+                else:
+                    print(Fore.RED + "Need to create a game")
                 continue
             elif command == "ls":
                 for i, statement in enumerate(game.seen):
@@ -381,7 +420,8 @@ def main():
                 team = [int(x) for x in input]
                 votes = [int(x) for x in raw_input("Votes? ").strip()]
                 round = int(raw_input("Round? ").strip())
-                game.do_vote(team, votes, round)
+                fail_req = int(raw_input("# Fails Required? ").strip())
+                game.do_vote(team, votes, fail_req, round)
                 game.trace = []
                 continue
 
@@ -414,8 +454,24 @@ def main():
                 if len(command_list) > 1:
                     times = int(command_list[1])
                 game.eval(times)
+            elif command == "merlineval":
+                times = 200 / (game.n_players - 4) * 2
+                if len(command_list) > 1:
+                    times = int(command_list[1])
+                game.eval(times, with_merlin=True)
             elif command == "report":
                 repl_report(game.report(), namemap, game.n_good)
+            elif command == "save":
+                if len(command_list) < 2:
+                    print(Fore.RED + "Need an output file")
+                    continue
+                metadata = [{
+                    "game_size": game.n_players,
+                    "player_names": namemap
+                }]
+                outpath = os.path.expanduser(command_list[1])
+                with open(outpath, "w") as savefile:
+                    json.dump(metadata + game.seen, savefile, indent=2)
             elif command == "name":
                 if len(command_list) < 3:
                     print(Fore.RED + "No args?")
@@ -429,8 +485,8 @@ def main():
             else:
                 print(Fore.RED + "Unknown command: %s" % command)
                 continue
-        except Exception:
-            print "\n"
+        except Exception, e:
+            print str(e)
             continue
 
 

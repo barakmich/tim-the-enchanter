@@ -1,0 +1,297 @@
+[
+  {
+    "player_names": {}, 
+    "game_size": 7
+  }, 
+  {
+    "votes": [
+      1, 
+      0, 
+      0, 
+      0, 
+      0, 
+      0, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 1,
+    "round": 1, 
+    "team": [
+      1, 
+      2
+    ]
+  }, 
+  {
+    "votes": [
+      1, 
+      0, 
+      0, 
+      1, 
+      0, 
+      1, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 1,
+    "round": 1, 
+    "team": [
+      3, 
+      6
+    ]
+  }, 
+  {
+    "fails": 0, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      3, 
+      6
+    ], 
+    "must fail": false, 
+    "round": 1
+  }, 
+  {
+    "votes": [
+      1, 
+      1, 
+      0, 
+      1, 
+      1, 
+      0, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 1,
+    "round": 2, 
+    "team": [
+      3, 
+      4, 
+      6
+    ]
+  }, 
+  {
+    "fails": 0, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      3, 
+      4, 
+      6
+    ], 
+    "must fail": false, 
+    "round": 2
+  }, 
+  {
+    "p2": 6, 
+    "is good": false, 
+    "p1": 1, 
+    "type": "lady", 
+    "print_order": [
+      "p1", 
+      "p2", 
+      "is good"
+    ]
+  }, 
+  {
+    "votes": [
+      0, 
+      0, 
+      0, 
+      1, 
+      1, 
+      1, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 1,
+    "round": 3, 
+    "team": [
+      3, 
+      4, 
+      5
+    ]
+  }, 
+  {
+    "votes": [
+      0, 
+      0, 
+      0, 
+      0, 
+      0, 
+      0, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 1,
+    "round": 3, 
+    "team": [
+      2, 
+      5, 
+      6
+    ]
+  }, 
+  {
+    "votes": [
+      1, 
+      1, 
+      1, 
+      0, 
+      1, 
+      0, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 1,
+    "round": 3, 
+    "team": [
+      0, 
+      3, 
+      4
+    ]
+  }, 
+  {
+    "fails": 1, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      3, 
+      4
+    ], 
+    "must fail": true, 
+    "round": 3
+  }, 
+  {
+    "p2": 3, 
+    "is good": true, 
+    "p1": 6, 
+    "type": "lady", 
+    "print_order": [
+      "p1", 
+      "p2", 
+      "is good"
+    ]
+  }, 
+  {
+    "votes": [
+      1, 
+      1, 
+      0, 
+      0, 
+      0, 
+      0, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 2,
+    "round": 4, 
+    "team": [
+      0, 
+      1, 
+      2, 
+      3
+    ]
+  }, 
+  {
+    "votes": [
+      1, 
+      0, 
+      1, 
+      1, 
+      0, 
+      0, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "type": "vote", 
+    "fails required": 2,
+    "round": 4, 
+    "team": [
+      2, 
+      3, 
+      4, 
+      5
+    ]
+  }, 
+  {
+    "fails": 1, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      2, 
+      3, 
+      4, 
+      5
+    ], 
+    "must fail": true, 
+    "round": 4
+  }, 
+  {
+    "is good": true, 
+    "player": 6, 
+    "print_order": [
+      "player", 
+      "is good"
+    ], 
+    "type": "known_side"
+  }
+]

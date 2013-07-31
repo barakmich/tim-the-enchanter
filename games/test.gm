@@ -1,0 +1,157 @@
+[
+  {
+    "player_names": {}, 
+    "game_size": 5
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      1, 
+      1, 
+      0, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      1, 
+      2
+    ], 
+    "type": "vote", 
+    "round": 1
+  }, 
+  {
+    "fails": 0, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      1, 
+      2
+    ], 
+    "must fail": false, 
+    "round": 1
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      1, 
+      1, 
+      1, 
+      0, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2
+    ], 
+    "type": "vote", 
+    "round": 2
+  }, 
+  {
+    "fails": 1, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2
+    ], 
+    "must fail": false, 
+    "round": 2
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      1, 
+      1, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      3, 
+      4
+    ], 
+    "type": "vote", 
+    "round": 3
+  }, 
+  {
+    "fails": 0, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      3, 
+      4
+    ], 
+    "must fail": false, 
+    "round": 3
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      1, 
+      1, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      3, 
+      4
+    ], 
+    "type": "vote", 
+    "round": 4
+  }, 
+  {
+    "fails": 1, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      3, 
+      4
+    ], 
+    "must fail": false, 
+    "round": 4
+  }
+]
