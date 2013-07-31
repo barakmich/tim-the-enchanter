@@ -9,7 +9,7 @@ import sys
 import colorama
 import json
 from colorama import Fore, Style
-from tim_special import special_votes
+from tim_votes import special_votes
 
 
 def ResistanceGame(n_players):
@@ -379,6 +379,23 @@ def display_statement(statement, namemap):
         out += str(statement[key]).title() + " "
     return out
 
+def help():
+    print(Fore.GREEN + "Initial Commands:")
+    print("load <filename> -- Loads a savefile")
+    print("newgame -- Starts a new game")
+    print("\n")
+    print(Fore.GREEN + "Game Commands:")
+    print("save <filename> -- Saves a game to file")
+    print("ls -- Lists current assertions")
+    print("disb <index> -- Delete (disbelieve) an assertion")
+    print("name -- Name a player index for pretty printing")
+    print("side -- Assert that someone must be good or evil")
+    print("lady -- Assert that one player saw another and made a claim")
+    print("vote -- Assert a voted-on team and the votes (whether it succeeded or not)")
+    print("mission -- Assert the results of a team and a mission")
+    print("eval <repetitions> -- Quick eval, discounting special roles")
+    print("fulleval <repetitions> -- Eval, counting special roles")
+    print("report -- Show last report again")
 
 def main():
     colorama.init(autoreset=True)
@@ -394,6 +411,9 @@ def main():
             command = command_list[0]
             if command == "quit" or command == "q" or command == "exit":
                 sys.exit(0)
+            if command == "help":
+                    help()
+                    continue
             if game is None:
                 if command == "newgame":
                     nplayers = raw_input("How many players? ")
@@ -459,11 +479,13 @@ def main():
                 if len(command_list) > 1:
                     times = int(command_list[1])
                 game.eval(times, quick=True)
+                repl_report(game.report(), namemap, game.n_good)
             elif command == "fulleval":
                 times = 200 / (game.n_players - 4) * 2
                 if len(command_list) > 1:
                     times = int(command_list[1])
                 game.eval(times)
+                repl_report(game.report(), namemap, game.n_good)
             elif command == "report":
                 repl_report(game.report(), namemap, game.n_good)
             elif command == "save":
