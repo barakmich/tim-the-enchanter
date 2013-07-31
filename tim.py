@@ -49,7 +49,7 @@ class DeceptionGame(object):
         self.observations = []
         self.seen = []
         self.tid = 0
-        self.lady_will_duck = Bernoulli(0.5)
+        self.lady_will_duck = Bernoulli(0.7)
         self.mission_ducks_on_round = [None] * 5
         self.mission_ducks_on_round[0] = Bernoulli(0.5)
         self.mission_ducks_on_round[1] = Bernoulli(0.5)
@@ -114,16 +114,11 @@ class DeceptionGame(object):
                 else:
                     return None
             else:
-                if self.lady_will_duck.rand():
-                    if self.player_is_good(deal, p2) == claim:
-                        return True
-                    else:
-                        return False
-                else:
-                    if self.player_is_good(deal, p2) == claim:
-                        return False
-                    else:
-                        return True
+                if claim is True:
+                    return self.lady_will_duck.rand()
+                if claim is False:
+                    return not self.lady_will_duck.rand()
+
         transaction.append(obs)
         self.observations.append(transaction)
         self.seen.append({"type": "lady",

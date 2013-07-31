@@ -31,7 +31,6 @@ def merlin_vote(game, player_id, team, votes, fail_req, r, deal):
     return True
 
 
-
 def mordred_vote(game, player_id, team, votes, fail_req, r, deal):
     n_actually_good_people = sum(
         [int(game.player_is_good(deal, x)) for x in team])
