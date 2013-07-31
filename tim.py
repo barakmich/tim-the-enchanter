@@ -9,6 +9,7 @@ import sys
 import colorama
 import json
 from colorama import Fore, Style
+from tim_special import special_votes
 
 
 def ResistanceGame(n_players):
@@ -21,7 +22,7 @@ def ResistanceGame(n_players):
 def AvalonGame(n_players):
     full_set = [("Merlin", True), ("G", True), ("G", True),
                 ("E", False), ("E", False), ("G", True),
-                ("E", False), ("G", True), ("G", True), ("E", False)]
+                ("Mordred", False), ("G", True), ("G", True), ("E", False)]
     return full_set[:n_players]
 
 
@@ -40,6 +41,8 @@ class DeceptionGame(object):
     def __init__(self, player_array):
         self.player_array = player_array
         self.all_permutations = list(set(itertools.permutations(player_array)))
+        self.quick_permutations = list(set(itertools.permutations(
+            [("", p[1]) for p in player_array])))
         self.n_players = len(player_array)
         self.n_good = len([x for x in player_array if x[1] is True])
         self.trace = None
@@ -59,6 +62,7 @@ class DeceptionGame(object):
         self.ignorance_on_round[2] = Bernoulli(0.5)
         self.ignorance_on_round[3] = Bernoulli(0.3)
         self.ignorance_on_round[4] = Bernoulli(0.3)
+        self.merlin_ignorance = Bernoulli(0.2)
 
     def player_is_good(self, deal, player):
         return deal[player][1]
@@ -180,12 +184,17 @@ class DeceptionGame(object):
             n_spies = len(team) - n_actually_good_people
             could_happen = True
             for player, vote in enumerate(votes):
-                if player in team:
+                role = self.player_role(deal, player)
+                if role in special_votes:
+                    if special_votes[role](self, player, team,
+                                           votes, fail_req, rnd, deal):
+                        continue
+                    else:
+                        return False
+                elif player in team:
                     continue
                 elif self.player_is_good(deal, player):
                     if n_spies > fail_req - 1:
-                        if self.player_role(deal, player) == "Merlin":
-                            continue
                         if vote == 1:
                             if self.ignorance_on_round[rnd].rand():
                                 continue
@@ -246,12 +255,12 @@ class DeceptionGame(object):
                 self.add_known_role(statement["player"],
                                     statement["role"])
 
-    def eval(self, length=10, with_merlin=False):
+    def eval(self, length=10, quick=False):
         random.seed()
-        if not with_merlin:
-            deck = self.all_permutations[:]
+        if quick:
+            deck = self.quick_permutations[:]
         else:
-            deck = list(set(itertools.permutations(AvalonGame(self.n_players))))
+            deck = self.all_permutations[:]
         new_deck = []
         trace = {}
         progress = progressbar.ProgressBar(
@@ -299,12 +308,8 @@ class DeceptionGame(object):
             out[i]["role"] = dd(float)
             out[i]["side"] = dd(float)
 
-        progress = progressbar.ProgressBar(
-            widgets=["Reticulating splines: ",
-                     progressbar.Bar(marker="*"),
-                     " ", progressbar.ETA()])
         size = sum(self.trace.values()) * 1.0
-        for deal, score in progress(self.trace.items()):
+        for deal, score in self.trace.items():
             for i, card in enumerate(deal):
                 role, side = card
                 out[i]["role"][role] += (score * 1.0) / size
@@ -354,10 +359,15 @@ def repl_report(report, namemap, ngood):
         roles = sorted([(v, k) for k, v in report[i]["role"].iteritems()],
                        reverse=True)
         row = "    "
+        has_roles = True
         for score, role in roles:
+            if role == "":
+                has_roles = False
+                break
             row += "%2.1f%% %s " % (
                 score * 100, role)
-        print(row)
+        if has_roles:
+            print(row)
 
         still_good += 1
 
@@ -392,7 +402,7 @@ def main():
             if game is None:
                 if command == "newgame":
                     nplayers = raw_input("How many players? ")
-                    game = DeceptionGame(ResistanceGame(int(nplayers)))
+                    game = DeceptionGame(AvalonGame(int(nplayers)))
                     namemap = {}
                 elif command == "load":
                     if len(command_list) < 2:
@@ -405,7 +415,7 @@ def main():
                         data = observations[1:]
 
                         game = DeceptionGame(
-                            ResistanceGame(int(metadata["game_size"])))
+                            AvalonGame(int(metadata["game_size"])))
                         namemap = metadata["player_names"]
                         game.load_save(data)
                 else:
@@ -453,12 +463,12 @@ def main():
                 times = 200 / (game.n_players - 4) * 2
                 if len(command_list) > 1:
                     times = int(command_list[1])
-                game.eval(times)
-            elif command == "merlineval":
+                game.eval(times, quick=True)
+            elif command == "fulleval":
                 times = 200 / (game.n_players - 4) * 2
                 if len(command_list) > 1:
                     times = int(command_list[1])
-                game.eval(times, with_merlin=True)
+                game.eval(times)
             elif command == "report":
                 repl_report(game.report(), namemap, game.n_good)
             elif command == "save":
