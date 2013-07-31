@@ -12,16 +12,16 @@ from colorama import Fore, Style
 
 
 def ResistanceGame(n_players):
-    full_set = [("G1", True), ("G2", True), ("G3", True),
-                ("E1", False), ("E2", False), ("G4", True),
-                ("E3", False), ("G5", True), ("G6", True), ("E4", False)]
+    full_set = [("G", True), ("G", True), ("G", True),
+                ("E", False), ("E", False), ("G", True),
+                ("E", False), ("G", True), ("G", True), ("E", False)]
     return full_set[:n_players]
 
 
 def AvalonGame(n_players):
-    full_set = [("Merlin", True), ("G2", True), ("G3", True),
-                ("E1", False), ("E2", False), ("G4", True),
-                ("E3", False), ("G5", True), ("G6", True), ("E4", False)]
+    full_set = [("Merlin", True), ("G", True), ("G", True),
+                ("E", False), ("E", False), ("G", True),
+                ("E", False), ("G", True), ("G", True), ("E", False)]
     return full_set[:n_players]
 
 
@@ -39,7 +39,7 @@ class Bernoulli(object):
 class DeceptionGame(object):
     def __init__(self, player_array):
         self.player_array = player_array
-        self.all_permutations = list(itertools.permutations(player_array))
+        self.all_permutations = list(set(itertools.permutations(player_array)))
         self.n_players = len(player_array)
         self.n_good = len([x for x in player_array if x[1] is True])
         self.trace = None
@@ -251,9 +251,9 @@ class DeceptionGame(object):
         if not with_merlin:
             deck = self.all_permutations[:]
         else:
-            deck = list(itertools.permutations(AvalonGame(self.n_players)))
+            deck = list(set(itertools.permutations(AvalonGame(self.n_players))))
         new_deck = []
-        trace = []
+        trace = {}
         progress = progressbar.ProgressBar(
             widgets=["Simulating games: ",
                      progressbar.Bar(marker="*"),
@@ -279,7 +279,9 @@ class DeceptionGame(object):
                         continue
 
                 if not is_bad:
-                    trace.append(deal)
+                    if deal not in trace:
+                        trace[deal] = 0
+                    trace[deal] += 1
                 if not dont_copy:
                     new_deck.append(deal)
             deck = new_deck
@@ -288,8 +290,6 @@ class DeceptionGame(object):
         self.trace = trace
 
     def report(self):
-        if self.trace == []:
-            self.eval()
         return self.get_player_data()
 
     def get_player_data(self):
@@ -303,12 +303,12 @@ class DeceptionGame(object):
             widgets=["Reticulating splines: ",
                      progressbar.Bar(marker="*"),
                      " ", progressbar.ETA()])
-        size = len(self.trace) * 1.0
-        for deal in progress(self.trace):
+        size = sum(self.trace.values()) * 1.0
+        for deal, score in progress(self.trace.items()):
             for i, card in enumerate(deal):
                 role, side = card
-                out[i]["role"][role] += 1.0 / size
-                out[i]["side"][side] += 1.0 / size
+                out[i]["role"][role] += (score * 1.0) / size
+                out[i]["side"][side] += (score * 1.0) / size
         for i in range(self.n_players):
             out[i]["role"] = dict(out[i]["role"])
             out[i]["side"] = dict(out[i]["side"])
@@ -328,7 +328,7 @@ class DeceptionGame(object):
     def disbelieve(self, i):
         self.observations = self.observations[:i] + self.observations[i + 1:]
         self.seen = self.seen[:i] + self.seen[i + 1:]
-        self.trace = []
+        self.trace = {}
 
     def print_report(self):
         pp = pprint.PrettyPrinter(indent=4)
@@ -422,7 +422,7 @@ def main():
                 round = int(raw_input("Round? ").strip())
                 fail_req = int(raw_input("# Fails Required? ").strip())
                 game.do_vote(team, votes, fail_req, round)
-                game.trace = []
+                game.trace = {}
                 continue
 
             elif command == "mission":
@@ -431,7 +431,7 @@ def main():
                 must = int(raw_input("Spys must fail? ").strip()) == 1
                 round = int(raw_input("Round? ").strip())
                 game.do_mission(team, fails, must, round)
-                game.trace = []
+                game.trace = {}
                 continue
 
             elif command == "lady" or command == "lol":
@@ -439,14 +439,14 @@ def main():
                 p2 = int(raw_input("ID For Target? ").strip())
                 claim = int(raw_input("Claim? ").strip()) == 1
                 game.player_sees_player_and_claims(p1, p2, claim)
-                game.trace = []
+                game.trace = {}
                 continue
 
             elif command == "side":
                 p1 = int(raw_input("ID For Assertion? ").strip())
                 claim = int(raw_input("Good? ").strip()) == 1
                 game.add_known_alliance(p1, claim)
-                game.trace = []
+                game.trace = {}
                 continue
 
             elif command == "eval":
