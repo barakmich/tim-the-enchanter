@@ -108,7 +108,7 @@ class DeceptionGame(object):
         transaction = []
 
         def obs(deal):
-            if self.player_is_good(deal, p1):
+            if self.player_is_good(deal, p1) and self.player_role(deal, p1) == "Mordred":
                 if self.player_is_good(deal, p2) == claim:
                     return True
                 else:
