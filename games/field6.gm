@@ -1,0 +1,406 @@
+[
+  {
+    "player_names": {}, 
+    "game_size": 8
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      1, 
+      1, 
+      1, 
+      1, 
+      0, 
+      0, 
+      1, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      4, 
+      7
+    ], 
+    "type": "vote", 
+    "round": 1
+  }, 
+  {
+    "fails": 1, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      4, 
+      7
+    ], 
+    "must fail": false, 
+    "round": 1
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      0, 
+      1, 
+      0, 
+      1, 
+      1, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      5, 
+      6
+    ], 
+    "type": "vote", 
+    "round": 2
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      0, 
+      0, 
+      0, 
+      1, 
+      0, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      2, 
+      3, 
+      4, 
+      5
+    ], 
+    "type": "vote", 
+    "round": 2
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      0, 
+      1, 
+      0, 
+      1, 
+      0, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2, 
+      3
+    ], 
+    "type": "vote", 
+    "round": 2
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      1, 
+      1, 
+      0, 
+      0, 
+      1, 
+      1, 
+      1, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      1, 
+      2, 
+      4, 
+      6
+    ], 
+    "type": "vote", 
+    "round": 2
+  }, 
+  {
+    "fails": 1, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      1, 
+      2, 
+      4, 
+      6
+    ], 
+    "must fail": false, 
+    "round": 2
+  }, 
+  {
+    "p2": 5, 
+    "is good": true, 
+    "p1": 7, 
+    "type": "lady", 
+    "print_order": [
+      "p1", 
+      "p2", 
+      "is good"
+    ]
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      0, 
+      1, 
+      0, 
+      1, 
+      1, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      1, 
+      5, 
+      6, 
+      7
+    ], 
+    "type": "vote", 
+    "round": 3
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      0, 
+      0, 
+      1, 
+      1, 
+      1, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      4, 
+      5, 
+      6, 
+      7
+    ], 
+    "type": "vote", 
+    "round": 3
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      0, 
+      0, 
+      0, 
+      1, 
+      0, 
+      1, 
+      0, 
+      1
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      2, 
+      5, 
+      7
+    ], 
+    "type": "vote", 
+    "round": 3
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2, 
+      5
+    ], 
+    "type": "vote", 
+    "round": 3
+  }, 
+  {
+    "fails": 0, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2, 
+      5
+    ], 
+    "must fail": true, 
+    "round": 3
+  }, 
+  {
+    "p2": 6, 
+    "is good": true, 
+    "p1": 5, 
+    "type": "lady", 
+    "print_order": [
+      "p1", 
+      "p2", 
+      "is good"
+    ]
+  }, 
+  {
+    "fails required": 2, 
+    "votes": [
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2, 
+      5, 
+      6
+    ], 
+    "type": "vote", 
+    "round": 4
+  }, 
+  {
+    "fails": 0, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2, 
+      5, 
+      6
+    ], 
+    "must fail": true, 
+    "round": 4
+  }, 
+  {
+    "fails required": 1, 
+    "votes": [
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      1, 
+      0
+    ], 
+    "print_order": [
+      "team", 
+      "votes", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2, 
+      5, 
+      6
+    ], 
+    "type": "vote", 
+    "round": 5
+  }, 
+  {
+    "fails": 0, 
+    "type": "mission", 
+    "print_order": [
+      "team", 
+      "fails", 
+      "must fail", 
+      "round"
+    ], 
+    "team": [
+      0, 
+      1, 
+      2, 
+      5, 
+      6
+    ], 
+    "must fail": true, 
+    "round": 5
+  }
+]
