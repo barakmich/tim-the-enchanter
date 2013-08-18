@@ -21,7 +21,7 @@ def ResistanceGame(n_players):
 
 def AvalonGame(n_players):
     full_set = [("Merlin", True), ("G", True), ("G", True),
-                ("E", False), ("E", False), ("G", True),
+                ("E", False), ("ELance", False), ("GLance", True),
                 ("Mordred", False), ("G", True), ("G", True), ("E", False)]
     return full_set[:n_players]
 
@@ -62,10 +62,22 @@ class DeceptionGame(object):
         self.ignorance_on_round[2] = Bernoulli(0.5)
         self.ignorance_on_round[3] = Bernoulli(0.3)
         self.ignorance_on_round[4] = Bernoulli(0.3)
-        self.merlin_ignorance = Bernoulli(0.2)
 
-    def player_is_good(self, deal, player):
-        return deal[player][1]
+        self.merlin_ignorance = Bernoulli(0.2)
+        self.lancelots_switch_at = []
+
+    def player_is_good(self, deal, player, round):
+        if len(self.lancelots_switch_at) != 1:
+            return deal[player][1]
+        else:
+            if self.player_role(deal, player) == "GLance" or \
+               self.player_role(deal, player) == "ELance":
+                if round >= self.lancelots_switch_at[0]:
+                    return not deal[player][1]
+                else:
+                    return deal[player][1]
+            else:
+                return deal[player][1]
 
     def player_role(self, deal, player):
         return deal[player][0]
@@ -74,7 +86,7 @@ class DeceptionGame(object):
         transaction = []
 
         def obs(deal):
-            if self.player_is_good(deal, player_id) == is_good:
+            if self.player_is_good(deal, player_id, -1) == is_good:
                 return True
             else:
                 return None
@@ -85,6 +97,22 @@ class DeceptionGame(object):
                           "is good": is_good,
                           "print_order": ["player",
                                           "is good"]})
+        self.tid += 1
+
+    def switch_lancelots(self, round):
+        transaction = []
+        rnd = round - 1
+
+        def obs(deal):
+            return True
+
+        self.lancelots_switch_at.append(rnd)
+
+        transaction.append(obs)
+        self.observations.append(transaction)
+        self.seen.append({"type": "switch",
+                          "round": rnd,
+                          "print_order": ["round"]})
         self.tid += 1
 
     def add_known_role(self, player_id, role_str):
@@ -104,12 +132,14 @@ class DeceptionGame(object):
                                           "role"]})
         self.tid += 1
 
-    def player_sees_player_and_claims(self, p1, p2, claim):
+    def player_sees_player_and_claims(self, p1, p2, claim, round):
         transaction = []
+        rnd = round - 1
 
         def obs(deal):
-            if self.player_is_good(deal, p1) and self.player_role(deal, p1) == "Mordred":
-                if self.player_is_good(deal, p2) == claim:
+            if self.player_is_good(deal, p1, rnd) \
+               and self.player_role(deal, p1) == "Mordred":
+                if self.player_is_good(deal, p2, rnd) == claim:
                     return True
                 else:
                     return None
@@ -125,8 +155,10 @@ class DeceptionGame(object):
                           "p1": p1,
                           "p2": p2,
                           "is good": claim,
+                          "round": round,
                           "print_order": ["p1",
                                           "p2",
+                                          "round",
                                           "is good"]})
         self.tid += 1
 
@@ -136,7 +168,7 @@ class DeceptionGame(object):
 
         def obs(deal):
             n_actually_good_people = sum(
-                [int(self.player_is_good(deal, x)) for x in team])
+                [int(self.player_is_good(deal, x, rnd)) for x in team])
             n_spies = len(team) - n_actually_good_people
             if n_spies == 0:
                 if fails != 0:
@@ -175,7 +207,7 @@ class DeceptionGame(object):
 
         def obs(deal):
             n_actually_good_people = sum(
-                [int(self.player_is_good(deal, x)) for x in team])
+                [int(self.player_is_good(deal, x, rnd)) for x in team])
             n_spies = len(team) - n_actually_good_people
             could_happen = True
             for player, vote in enumerate(votes):
@@ -188,7 +220,7 @@ class DeceptionGame(object):
                         return False
                 elif player in team:
                     continue
-                elif self.player_is_good(deal, player):
+                elif self.player_is_good(deal, player, rnd):
                     if n_spies > fail_req - 1:
                         if vote == 1:
                             if self.ignorance_on_round[rnd].rand():
@@ -234,6 +266,8 @@ class DeceptionGame(object):
                              statement["votes"],
                              statement["fails required"],
                              statement["round"])
+            if type == "switch":
+                self.switch_lancelots(statement["round"])
             elif type == "mission":
                 self.do_mission(statement["team"],
                                 statement["fails"],
@@ -242,7 +276,8 @@ class DeceptionGame(object):
             elif type == "lady":
                 self.player_sees_player_and_claims(statement["p1"],
                                                    statement["p2"],
-                                                   statement["is good"])
+                                                   statement["is good"],
+                                                   statement.get("round", -1))
             elif type == "known_side":
                 self.add_known_alliance(statement["player"],
                                         statement["is good"])
@@ -379,6 +414,7 @@ def display_statement(statement, namemap):
         out += str(statement[key]).title() + " "
     return out
 
+
 def help():
     print(Fore.GREEN + "Initial Commands:")
     print("load <filename> -- Loads a savefile")
@@ -391,14 +427,17 @@ def help():
     print("name -- Name a player index for pretty printing")
     print("side -- Assert that someone must be good or evil")
     print("lady -- Assert that one player saw another and made a claim")
-    print("vote -- Assert a voted-on team and the votes (whether it succeeded or not)")
+    print("vote -- Assert a voted-on team and the votes"
+          " (whether it succeeded or not)")
     print("mission -- Assert the results of a team and a mission")
     print("eval <repetitions> -- Quick eval, discounting special roles")
     print("fulleval <repetitions> -- Eval, counting special roles")
     print("report -- Show last report again")
 
+
 def main():
     colorama.init(autoreset=True)
+    readline.get_history_length()
     print(Fore.GREEN + Style.BRIGHT + "Tim the Enchanter v1.0")
 
     game = None
@@ -463,7 +502,8 @@ def main():
                 p1 = int(raw_input("ID For Lady? ").strip())
                 p2 = int(raw_input("ID For Target? ").strip())
                 claim = int(raw_input("Claim? ").strip()) == 1
-                game.player_sees_player_and_claims(p1, p2, claim)
+                round = int(raw_input("Round? ").strip()) == 1
+                game.player_sees_player_and_claims(p1, p2, claim, round)
                 game.trace = {}
                 continue
 
@@ -471,6 +511,12 @@ def main():
                 p1 = int(raw_input("ID For Assertion? ").strip())
                 claim = int(raw_input("Good? ").strip()) == 1
                 game.add_known_alliance(p1, claim)
+                game.trace = {}
+                continue
+
+            elif command == "switch":
+                r = int(raw_input("Round?").strip())
+                game.switch_lancelots(r)
                 game.trace = {}
                 continue
 

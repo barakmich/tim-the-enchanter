@@ -1,6 +1,6 @@
 def merlin_vote(game, player_id, team, votes, fail_req, r, deal):
     n_actually_good_people = sum(
-        [int(game.player_is_good(deal, x)) for x in team])
+        [int(game.player_is_good(deal, x, r)) for x in team])
     n_spies = len(team) - n_actually_good_people
     roles = [game.player_role(deal, x) for x in team]
     if "Mordred" in roles:
@@ -33,7 +33,7 @@ def merlin_vote(game, player_id, team, votes, fail_req, r, deal):
 
 def mordred_vote(game, player_id, team, votes, fail_req, r, deal):
     n_actually_good_people = sum(
-        [int(game.player_is_good(deal, x)) for x in team])
+        [int(game.player_is_good(deal, x, r)) for x in team])
     n_spies = len(team) - n_actually_good_people
     roles = [game.player_role(deal, x) for x in team]
     if "Oberon" in roles:
