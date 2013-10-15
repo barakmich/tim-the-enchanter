@@ -9,7 +9,7 @@ import sys
 import colorama
 import json
 from colorama import Fore, Style
-from tim_votes import special_votes
+from models.default_model import DefaultModel
 
 
 def ResistanceGame(n_players):
@@ -22,24 +22,15 @@ def ResistanceGame(n_players):
 def AvalonGame(n_players):
     full_set = [("Merlin", True), ("G", True), ("G", True),
                 ("E", False), ("ELance", False), ("GLance", True),
-                ("Mordred", False), ("G", True), ("G", True), ("E", False)]
+                ("Mordred", False), ("G", True), ("G", True),
+                ("Oberon", False)]
     return full_set[:n_players]
 
 
-class Bernoulli(object):
-    def __init__(self, percentage):
-        self.percentage = percentage
-
-    def rand(self):
-        return random.random() < self.percentage
-
-    def random(self):
-        return self.rand()
-
-
 class DeceptionGame(object):
-    def __init__(self, player_array):
+    def __init__(self, player_array, model_class):
         self.player_array = player_array
+        self.model = model_class(self)
         self.all_permutations = list(set(itertools.permutations(player_array)))
         self.quick_permutations = list(set(itertools.permutations(
             [("", p[1]) for p in player_array])))
@@ -49,35 +40,28 @@ class DeceptionGame(object):
         self.observations = []
         self.seen = []
         self.tid = 0
-        self.lady_will_duck = Bernoulli(0.7)
-        self.mission_ducks_on_round = [None] * 5
-        self.mission_ducks_on_round[0] = Bernoulli(0.5)
-        self.mission_ducks_on_round[1] = Bernoulli(0.5)
-        self.mission_ducks_on_round[2] = Bernoulli(0.5)
-        self.mission_ducks_on_round[3] = Bernoulli(0.0)
-        self.mission_ducks_on_round[4] = Bernoulli(0.0)
-        self.ignorance_on_round = [None] * 5
-        self.ignorance_on_round[0] = Bernoulli(0.9)
-        self.ignorance_on_round[1] = Bernoulli(0.7)
-        self.ignorance_on_round[2] = Bernoulli(0.5)
-        self.ignorance_on_round[3] = Bernoulli(0.3)
-        self.ignorance_on_round[4] = Bernoulli(0.3)
-
-        self.merlin_ignorance = Bernoulli(0.2)
         self.lancelots_switch_at = []
 
     def player_is_good(self, deal, player, round):
-        if len(self.lancelots_switch_at) != 1:
+        if round is None:
             return deal[player][1]
-        else:
-            if self.player_role(deal, player) == "GLance" or \
-               self.player_role(deal, player) == "ELance":
-                if round >= self.lancelots_switch_at[0]:
-                    return not deal[player][1]
-                else:
-                    return deal[player][1]
+        if self.player_role(deal, player) is not "GLance" and \
+           self.player_role(deal, player) is not "ELance":
+            return deal[player][1]
+        if len(self.lancelots_switch_at) == 0:
+            return deal[player][1]
+        if len(self.lancelots_switch_at) == 1:
+            if round >= self.lancelots_switch_at[0]:
+                return not deal[player][1]
             else:
                 return deal[player][1]
+        if len(self.lancelots_switch_at) == 2:
+            if round >= self.lancelots_switch_at[0] and \
+               round < self.lancelots_switch_at[1]:
+                return not deal[player][1]
+            else:
+                return deal[player][1]
+        return deal[player][1]
 
     def player_role(self, deal, player):
         return deal[player][0]
@@ -86,7 +70,7 @@ class DeceptionGame(object):
         transaction = []
 
         def obs(deal):
-            if self.player_is_good(deal, player_id, -1) == is_good:
+            if self.player_is_good(deal, player_id, None) == is_good:
                 return True
             else:
                 return None
@@ -137,18 +121,8 @@ class DeceptionGame(object):
         rnd = round - 1
 
         def obs(deal):
-            if self.player_is_good(deal, p1, rnd) \
-               and self.player_role(deal, p1) == "Mordred":
-                if self.player_is_good(deal, p2, rnd) == claim:
-                    return True
-                else:
-                    return None
-            else:
-                if claim is True:
-                    return self.lady_will_duck.rand()
-                if claim is False:
-                    return not self.lady_will_duck.rand()
-
+            self.model.set_deal(deal)
+            return self.model.player_sees_player_and_claims(p1, p2, claim, rnd)
         transaction.append(obs)
         self.observations.append(transaction)
         self.seen.append({"type": "lady",
@@ -167,26 +141,8 @@ class DeceptionGame(object):
         rnd = r - 1
 
         def obs(deal):
-            n_actually_good_people = sum(
-                [int(self.player_is_good(deal, x, rnd)) for x in team])
-            n_spies = len(team) - n_actually_good_people
-            if n_spies == 0:
-                if fails != 0:
-                    return None
-                else:
-                    return True
-            else:
-                if fails == 0:
-                    if must_fail:
-                        return None
-                    duck = False
-                    for i in range(n_spies - fails):
-                        duck = duck or self.mission_ducks_on_round[rnd].rand()
-                    return duck
-                else:
-                    if fails > n_spies:
-                        return None
-                    return True
+            self.model.set_deal(deal)
+            return self.model.mission(team, fails, must_fail, rnd)
 
         transaction.append(obs)
         self.observations.append(transaction)
@@ -206,47 +162,8 @@ class DeceptionGame(object):
         rnd = r - 1
 
         def obs(deal):
-            n_actually_good_people = sum(
-                [int(self.player_is_good(deal, x, rnd)) for x in team])
-            n_spies = len(team) - n_actually_good_people
-            could_happen = True
-            for player, vote in enumerate(votes):
-                role = self.player_role(deal, player)
-                if role in special_votes:
-                    if special_votes[role](self, player, team,
-                                           votes, fail_req, rnd, deal):
-                        continue
-                    else:
-                        return False
-                elif player in team:
-                    continue
-                elif self.player_is_good(deal, player, rnd):
-                    if n_spies > fail_req - 1:
-                        if vote == 1:
-                            if self.ignorance_on_round[rnd].rand():
-                                continue
-                            else:
-                                return False
-                    else:
-                        if vote == 0:
-                            if self.ignorance_on_round[rnd].rand():
-                                continue
-                            else:
-                                return False
-                else:
-                    if n_spies < fail_req:
-                        if vote == 1:
-                            if self.ignorance_on_round[rnd].rand():
-                                continue
-                            else:
-                                return False
-                    else:
-                        if vote == 0:
-                            if self.ignorance_on_round[rnd].rand():
-                                continue
-                            else:
-                                return False
-            return could_happen
+            self.model.set_deal(deal)
+            return self.model.votes(team, votes, fail_req, rnd)
 
         transaction.append(obs)
         self.observations.append(transaction)
@@ -429,6 +346,7 @@ def help():
     print("lady -- Assert that one player saw another and made a claim")
     print("vote -- Assert a voted-on team and the votes"
           " (whether it succeeded or not)")
+    print("switch -- Good and Evil Lancelots switch")
     print("mission -- Assert the results of a team and a mission")
     print("eval <repetitions> -- Quick eval, discounting special roles")
     print("fulleval <repetitions> -- Eval, counting special roles")
@@ -456,7 +374,8 @@ def main():
             if game is None:
                 if command == "newgame":
                     nplayers = raw_input("How many players? ")
-                    game = DeceptionGame(AvalonGame(int(nplayers)))
+                    game = DeceptionGame(
+                        AvalonGame(int(nplayers)), DefaultModel)
                     namemap = {}
                 elif command == "load":
                     if len(command_list) < 2:
@@ -469,7 +388,8 @@ def main():
                         data = observations[1:]
 
                         game = DeceptionGame(
-                            AvalonGame(int(metadata["game_size"])))
+                            AvalonGame(int(metadata["game_size"])),
+                            DefaultModel)
                         namemap = metadata["player_names"]
                         game.load_save(data)
                 else:
@@ -515,7 +435,7 @@ def main():
                 continue
 
             elif command == "switch":
-                r = int(raw_input("Round?").strip())
+                r = int(raw_input("Starting in round?").strip())
                 game.switch_lancelots(r)
                 game.trace = {}
                 continue
@@ -560,6 +480,7 @@ def main():
                 continue
         except Exception, e:
             print str(e)
+            raise e
             continue
 
 
