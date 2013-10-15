@@ -1,10 +1,59 @@
 from util import Bernoulli
 
 
-class DefaultModel(object):
+# Models work like this; feel free to inherit from BaseModel to get the
+# necessary helpful things.
+#
+# Instance variables of models represent unknowns or random data. The important
+# calls are
+# * player_sees_player_and_claims
+# * votes
+# * mission
+# And that's it! Delegate to other functions as necessary (see the example
+# role-based map below) These functions should return one of the following,
+# depending on the circumstance:
+# * True -- This set of statements could totally happen (or randomness chose
+#   that it did)
+#
+# * False -- This set of statements could happen, but is unlikely (or
+#   randomness chose that it didn't)
+#
+# * None -- This set of statements could NEVER happen, please remove them from
+#   consideration.
+
+class BaseModel(object):
     def __init__(self, game):
         self.game = game
         self.deal = []
+
+#  These are helper functions -- do not override
+    def set_deal(self, deal):
+        self.deal = deal
+
+    def is_good(self, player, round):
+        return self.game.player_is_good(self.deal, player, round)
+
+    def is_role(self, player, role):
+        return self.game.player_role(self.deal, player) == role
+
+    def player_role(self, player):
+        return self.game.player_role(self.deal, player)
+
+#  Override these!
+    def player_sees_player_and_claims(self, p1, p2, claim, rnd):
+        return True
+
+    def mission(self, team, fails, must_fail, rnd):
+        return True
+
+    def votes(self, team, votes, fail_req, rnd):
+        return True
+
+
+class DefaultModel(BaseModel):
+    def __init__(self, game):
+        super(DefaultModel, self).__init__(game)
+
         self.lady_will_duck = Bernoulli(0.7)
         self.mission_ducks_on_round = [None] * 5
         self.mission_ducks_on_round[0] = Bernoulli(0.5)
@@ -18,20 +67,7 @@ class DefaultModel(object):
         self.ignorance_on_round[2] = Bernoulli(0.5)
         self.ignorance_on_round[3] = Bernoulli(0.3)
         self.ignorance_on_round[4] = Bernoulli(0.3)
-
         self.merlin_ignorance = Bernoulli(0.2)
-
-    def set_deal(self, deal):
-        self.deal = deal
-
-    def is_good(self, player, round):
-        return self.game.player_is_good(self.deal, player, round)
-
-    def is_role(self, player, role):
-        return self.game.player_role(self.deal, player) == role
-
-    def player_role(self, player):
-        return self.game.player_role(self.deal, player)
 
     def player_sees_player_and_claims(self, p1, p2, claim, rnd):
         if self.is_good(p1, rnd) or self.is_role(p1, "Mordred"):
