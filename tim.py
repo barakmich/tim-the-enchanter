@@ -215,6 +215,10 @@ class DeceptionGame(object):
                      progressbar.Bar(marker="*"),
                      " ", progressbar.ETA()])
         for i in progress(range(length)):
+            #print len(deck)
+            falses = 0
+            trues = 0
+            nones = 0
             for deal in deck:
                 f_list = []
                 for obs in self.observations:
@@ -227,20 +231,25 @@ class DeceptionGame(object):
                     if out is None:
                         is_bad = True
                         dont_copy = True
+                        nones += 1
                         break
                     if out is True:
+                        trues += 1
                         continue
                     if out is False:
                         is_bad = True
-                        continue
-
+                        falses += 1
+                        break
                 if not is_bad:
                     if deal not in trace:
-                        trace[deal] = 0
+                        trace[deal] = 1
                     trace[deal] += 1
                 if not dont_copy:
                     new_deck.append(deal)
             deck = new_deck
+            #print falses,
+            #print trues,
+            #print nones
             new_deck = []
 
         self.trace = trace
